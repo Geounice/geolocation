@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Géolocalisation avec Altitude, Azimut et Stockage</title>
+</head>
+<body>
+    <h2>Localisation actuelle</h2>
+    <p>Latitude: <span id="latitude"></span></p>
+    <p>Longitude: <span id="longitude"></span></p>
+    <p>Altitude: <span id="altitude"></span></p>
+    <p>Azimut: <span id="azimuth"></span>°</p>
+    <button onclick="getLocation()">Obtenir la localisation</button>
+    <button onclick="saveLocation()">Sauvegarder la localisation</button>
+    <button onclick="retrieveLocation()">Récupérer la dernière localisation</button>
+    <button onclick="copyLocation()">Copier les coordonnées</button>
+
+    <script>
+        let currentAzimuth = null;
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else { 
+                alert("La géolocalisation n'est pas supportée par ce navigateur.");
+            }
+        }
+
+        function showPosition(position) {
+            document.getElementById("latitude").textContent = position.coords.latitude;
+            document.getElementById("longitude").textContent = position.coords.longitude;
+            document.getElementById("altitude").textContent = position.coords.altitude || "Non disponible";
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("L'utilisateur a refusé la demande de géolocalisation.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("Les informations de localisation sont indisponibles.");
+                    break;
+                case error.TIMEOUT:
+                    alert("La demande de récupération de la localisation a expiré.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("Une erreur inconnue est survenue.");
+                    break;
+            }
+        }
+
+        // Écouteur pour l'azimut
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener("deviceorientation", function(event) {
+                currentAzimuth = event.alpha;
+                document.getElementById("azimuth").textContent = currentAzimuth ? currentAzimuth.toFixed(2) : "Non disponible";
+            }, false);
+        } else {
+            document.getElementById("azimuth").textContent = "L'API d'orientation n'est pas supportée";
+        }
+
+        function saveLocation() {
+            const latitude = document.getElementById("latitude").textContent;
+            const longitude = document.getElementById("longitude").textContent;
+            const altitude = document.getElementById("altitude").textContent;
+            const azimuth = currentAzimuth ? currentAzimuth.toFixed(2) : "Non disponible";
+            localStorage.setItem("location", JSON.stringify({latitude, longitude, altitude, azimuth}));
+            alert("Localisation sauvegardée.");
+        }
+
+        function retrieveLocation() {
+            const location = JSON.parse(localStorage.getItem("location"));
+            if (location) {
+                document.getElementById("latitude").textContent = location.latitude;
+                document.getElementById("longitude").textContent = location.longitude;
+                document.getElementById("altitude").textContent = location.altitude;
+                document.getElementById("azimuth").textContent = location.azimuth;
+            } else {
+                alert("Aucune localisation sauvegardée.");
+            }
+        }
+
+        function copyLocation() {
+            const latitude = document.getElementById("latitude").textContent;
+            const longitude = document.getElementById("longitude").textContent;
+            const altitude = document.getElementById("altitude").textContent;
+            const azimuth = document.getElementById("azimuth").textContent;
+            const coordText = `Latitude: ${latitude}, Longitude: ${longitude}, Altitude: ${altitude}, Azimut: ${azimuth}°`;
+            navigator.clipboard.writeText(coordText).then(() => {
+                alert("Coordonnées copiées dans le presse-papiers !");
+            }).catch(err => {
+                alert("Erreur lors de la copie : ", err);
+            });
+        }
+    </script>
+</body>
+</html>
