@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Géolocalisation avec Realtime Database</title>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGVZa33uk5y1PY6vkyCj3-QTu-Uw8Nc98",
+            authDomain: "geolocalisation-unice.firebaseapp.com",
+            projectId: "geolocalisation-unice",
+            storageBucket: "geolocalisation-unice.appspot.com",
+            messagingSenderId: "256256594187",
+            appId: "1:256256594187:web:f931955318ff8a04b5120e"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Function to save location data to Realtime Database
+        async function saveLocation(latitude, longitude, altitude) {
+            await set(ref(database, 'locations/lastLocation'), {
+                latitude,
+                longitude,
+                altitude: altitude || "Non disponible"
+            });
+            console.log("Localisation sauvegardée");
+        }
+
+        // Function to retrieve the last saved location from Realtime Database
+        async function retrieveLocation() {
+            const snapshot = await get(ref(database, 'locations/lastLocation'));
+            if (snapshot.exists()) {
+                const location = snapshot.val();
+                document.getElementById("latitude").textContent = "Latitude: " + location.latitude;
+                document.getElementById("longitude").textContent = "Longitude: " + location.longitude;
+                document.getElementById("altitude").textContent = "Altitude: " + (location.altitude || "Non disponible");
+            } else {
+                console.log("Aucune localisation trouvée");
+            }
+        }
+
+        // Expose functions to the global context
+        window.saveLocation = saveLocation;
+        window.retrieveLocation = retrieveLocation;
+        window.getLocationAndSave = () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    const altitude = position.coords.altitude || "Non disponible";
+                    await saveLocation(latitude, longitude, altitude);
+                    retrieveLocation(); // Optionally retrieve immediately after saving
+                }, (error) => {
+                    console.error("Erreur de géolocalisation : ", error);
+                });
+            } else { 
+                alert("La géolocalisation n'est pas supportée par ce navigateur.");
+            }
+        };
+    </script>
+</head>
+<body>
+    <h2>Localisation actuelle</h2>
+    <button onclick="getLocationAndSave()">Obtenir et sauvegarder la localisation</button>
+    <button onclick="retrieveLocation()">Récupérer la dernière localisation</button>
+    <div>
+        <p id="latitude">Latitude: </p>
+        <p id="longitude">Longitude: </p>
+        <p id="altitude">Altitude: </p>
+    </div>
+</body>
+</html>
+
