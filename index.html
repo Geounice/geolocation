@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Géolocalisation avec Realtime Database et Azimut</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGVZa33uk5y1PY6vkyCj3-QTu-Uw8Nc98",
+            authDomain: "geolocalisation-unice.firebaseapp.com",
+            projectId: "geolocalisation-unice",
+            storageBucket: "geolocalisation-unice.appspot.com",
+            messagingSenderId: "256256594187",
+            appId: "1:256256594187:web:f931955318ff8a04b5120e",
+            databaseURL: "https://geolocalisation-unice-default-rtdb.europe-west1.firebasedatabase.app/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        async function saveLocation(latitude, longitude, altitude, azimuth) {
+            await set(ref(database, 'locations/lastLocation'), {
+                latitude,
+                longitude,
+                altitude: altitude || "Non disponible",
+                azimuth: azimuth || "Non disponible"
+            });
+            console.log("Localisation et azimut sauvegardés");
+        }
+
+        async function retrieveLocation() {
+            const snapshot = await get(ref(database, 'locations/lastLocation'));
+            if (snapshot.exists()) {
+                const location = snapshot.val();
+                document.getElementById("latitude").textContent = "Latitude: " + location.latitude;
+                document.getElementById("longitude").textContent = "Longitude: " + location.longitude;
+                document.getElementById("altitude").textContent = "Altitude: " + (location.altitude || "Non disponible");
+                document.getElementById("azimuth").textContent = "Azimut: " + (location.azimuth || "Non disponible");
+            } else {
+                console.log("Aucune localisation trouvée");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            retrieveLocation();
+        });
+
+        function getAzimuthMock() {
+            return Math.floor(Math.random() * 360);
+        }
+
+        window.saveCurrentLocation = async function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    const altitude = position.coords.altitude || 'Non disponible';
+                    const azimuth = getAzimuthMock();
+                    await saveLocation(latitude, longitude, altitude, azimuth);
+                    retrieveLocation();
+                }, (error) => {
+                    console.error('Erreur de géolocalisation : ', error);
+                });
+            } else {
+                alert("La géolocalisation n'est pas supportée par ce navigateur.");
+            }
+        };
+    </script>
+</head>
+<body>
+    <h2>Localisation actuelle</h2>
+    <button onclick="saveCurrentLocation()">Obtenir et sauvegarder la localisation et l'azimut</button>
+    <button onclick="retrieveLocation()">Récupérer la dernière localisation</button>
+    <div>
+        <p id="latitude">Latitude: </p>
+        <p id="longitude">Longitude: </p>
+        <p id="altitude">Altitude: </p>
+        <p id="azimuth">Azimut: </p>
+    </div>
+</body>
+</html>
+
