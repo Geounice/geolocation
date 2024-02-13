@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Géolocalisation et Azimut avec Realtime Database</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Configuration de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGVZa33uk5y1PY6vkyCj3-QTu-Uw8Nc98",
+            authDomain: "geolocalisation-unice.firebaseapp.com",
+            projectId: "geolocalisation-unice",
+            storageBucket: "geolocalisation-unice.appspot.com",
+            messagingSenderId: "256256594187",
+            appId: "1:256256594187:web:f931955318ff8a04b5120e",
+            databaseURL: "https://geolocalisation-unice-default-rtdb.europe-west1.firebasedatabase.app/"
+        };
+
+        // Initialisation de Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        let azimuth = 'Non disponible';
+
+        // Écouteur pour l'azimut
+        window.addEventListener('deviceorientation', (event) => {
+            azimuth = event.alpha; // Orientation de l'appareil en degrés autour de l'axe Z
+            document.getElementById("azimuth").textContent = "Azimut: " + (azimuth ? azimuth.toFixed(2) + "°" : "Non disponible");
+        }, true);
+
+        // Sauvegarder la localisation et l'azimut
+        async function saveLocationAndAzimuth(latitude, longitude, altitude) {
+            await set(ref(database, 'locations/lastLocation'), {
+                latitude,
+                longitude,
+                altitude: altitude || "Non disponible",
+                azimuth: azimuth || "Non disponible"
+            });
+            console.log("Localisation et azimut sauvegardés");
+        }
+
+        // Récupérer la dernière localisation et azimut
+        async function retrieveLocationAndAzimuth() {
+            const snapshot = await get(ref(database, 'locations/lastLocation'));
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                document.getElementById("latitude").textContent = "Latitude: " + data.latitude;
+                document.getElementById("longitude").textContent = "Longitude: " + data.longitude;
+                document.getElementById("altitude").textContent = "Altitude: " + (data.altitude || "Non disponible");
+                document.getElementById("azimuth").textContent = "Azimut: " + (data.azimuth || "Non disponible");
+            } else {
+                console.log("Aucune donnée trouvée");
+            }
+        }
+
+        // Appeler cette fonction au chargement de la page et lors du clic sur le bouton
+        document.addEventListener('DOMContentLoaded', () => {
+            retrieveLocationAndAzimuth();
+        });
+
+        // Fonction pour sauvegarder la localisation actuelle et l'azimut
+        window.saveCurrentLocationAndAzimuth = async function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    const altitude = position.coords.altitude || 'Non disponible';
+                    await saveLocationAndAzimuth(latitude, longitude, altitude);
+                    retrieveLocationAndAzimuth();
+                }, (error) => {
+                    console.error('Erreur de géolocalisation : ', error);
+                });
+            } else {
+                alert("La géolocalisation n'est pas supportée par ce navigateur.");
+            }
+        };
+    </script>
+</head>
+<body>
+    <h2>Localisation et Azimut</h2>
+    <button onclick="saveCurrentLocationAndAzimuth()">Sauvegarder Localisation et Azimut</button>
+    <div>
+        <p id="latitude">Latitude: </p>
+        <p id="longitude">Longitude: </p>
+        <p id="altitude">Altitude: </p>
+        <p id="azimuth">Azimut: </p>
+    </div>
+</body>
+</html>
+
